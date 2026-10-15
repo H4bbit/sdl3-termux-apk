@@ -178,10 +178,12 @@ This project uses `termux-ndk`.
 
 The official Android NDK does not integrate cleanly with Termux in many cases. The Termux-adapted NDK avoids several compatibility issues.
 
-Clone it somewhere accessible, for example:
+Download the Termux-adapted NDK tarball (do NOT clone the repo — it does not contain a usable NDK tree) and extract it somewhere accessible, for example:
 
 ```bash
-git clone https://github.com/lzhiyong/termux-ndk.git ~/android-ndk
+mkdir -p ~/android-ndk
+curl -sL https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r29-aarch64.tar.xz \
+  | tar -xJ -C ~/android-ndk
 ```
 ## SDL3 Dependency
 
