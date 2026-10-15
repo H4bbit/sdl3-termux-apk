@@ -38,8 +38,10 @@ This project intentionally avoids:
 - Gradle
 - Android Studio
 - ndk-build
-- sdkmanager
 - Java/Kotlin Android application templates
+- Android SDK binaries (aapt2, d8, zipalign, apksigner from the SDK
+  do not execute correctly inside Termux — the Termux-packaged
+  equivalents are used instead)
 
 The entire APK is assembled manually through shell scripts and command-line tooling.
 
@@ -130,10 +132,16 @@ This makes the Android native stack significantly easier to understand.
 Several Android SDK binaries do not execute correctly inside Termux because they were built expecting a conventional Linux environment. For this reason, this project uses:
 
 - aapt2
+- d8
 - zipalign
 - apksigner
 
 from the Termux repositories instead of the Android SDK versions. Java tooling is also aligned around the Termux OpenJDK environment.
+
+The only piece required from the Android SDK itself is the platform
+stub (`platforms/android-34/android.jar`), which contains no binaries
+and is consumed as a compile/link reference. It can be installed with
+the SDK command-line tools (`sdkmanager "platforms;android-34"`).
 
 ### Why Java 17?
 The Termux Android tooling ecosystem works reliably with OpenJDK 17. The build pipeline was designed around openjdk-17 inside Termux.
@@ -160,18 +168,24 @@ pkg install \
   clang \
   openjdk-17 \
   aapt \
+  aapt2 \
+  d8 \
   apksigner \
   zipalign
 
 ```
 
 ## Android SDK Setup
-You must install an Android SDK inside Termux. Expected environment variables:
+The build expects an Android SDK providing the API 34 platform stub
+(`platforms/android-34/android.jar`), pointed to by `ANDROID_HOME`, and
+the Termux-adapted NDK, pointed to by `ANDROID_NDK_HOME`, e.g.:
 ```bash
-export ANDROID_HOME=$HOME/android-sdk
-export ANDROID_NDK_HOME=$HOME/android-ndk
+export ANDROID_HOME=$HOME/path/to/android-sdk
+export ANDROID_NDK_HOME=$HOME/path/to/android-ndk
 
 ```
+Only the platform stub is used from the SDK — packaging tools
+(aapt2, d8, zipalign, apksigner) come from the Termux packages above.
 ## Android NDK
 
 This project uses `termux-ndk`.
