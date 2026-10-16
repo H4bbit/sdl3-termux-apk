@@ -12,7 +12,11 @@ This project demonstrates how to:
 - Sign APKs manually
 - Work with SDL3 Android integration without Gradle or Android Studio
 
-Everything is built directly inside Termux using shell scripts and command line tools.
+Everything is built directly inside Termux (aarch64) using shell
+scripts and command line tools. This project targets the Termux app
+from GitHub releases only (the Play Store build is deprecated and
+unsupported) — paths, toolchain and packaging choices below assume
+that environment.
 
 ---
 
@@ -60,7 +64,7 @@ The entire APK is assembled manually through shell scripts and command-line tool
 - Multi-touch particle demo
 - No Gradle
 - No Android Studio
-- Works fully inside Termux
+- Works fully inside Termux from GitHub releases (aarch64-only, Play Store build unsupported)
 
 ---
 
@@ -154,14 +158,14 @@ The Termux Android tooling ecosystem works reliably with OpenJDK 17. The build p
 
 ## Dependencies
 
-This project depends on:
-
-- SDL3
-- Android SDK
-- Android NDK
-- Termux packages
-- Ninja
-- CMake
+| Dependency | Minimum | Notes |
+|---|---|---|
+| Termux (aarch64) | — | `$PREFIX` environment, `pkg` packages below |
+| SDL3 | `main` at time of build | cloned into `vendor/SDL`, provides `android-project/` |
+| Android SDK platform | `android-34` | only `platforms/android-34/android.jar` is used |
+| Termux-adapted NDK | r29 (aarch64) | provides toolchain + `libc++_shared.so` |
+| openjdk-17 | 17 | `javac`, `keytool` (via `pkg`) |
+| cmake, ninja, aapt2, d8, apksigner, zipalign, zip | — | all via `pkg` |
 
 ## Termux Setup
 Install required packages:
@@ -171,24 +175,34 @@ pkg install \
   git \
   cmake \
   ninja \
-  clang \
   openjdk-17 \
-  aapt \
   aapt2 \
   d8 \
   apksigner \
-  zipalign
+  zipalign \
+  zip
 
 ```
 
 ## Android SDK Setup
-The build expects an Android SDK providing the API 34 platform stub
-(`platforms/android-34/android.jar`), pointed to by `ANDROID_HOME`, and
-the Termux-adapted NDK, pointed to by `ANDROID_NDK_HOME`, e.g.:
-```bash
-export ANDROID_HOME=$HOME/path/to/android-sdk
-export ANDROID_NDK_HOME=$HOME/path/to/android-ndk
+The build expects two environment variables pointing wherever you
+installed each piece (no fixed location required):
 
+- `ANDROID_HOME` — an Android SDK whose `platforms/android-34/`
+  holds `android.jar` (only this stub is used from the SDK).
+  Install it with the SDK command-line tools, e.g.:
+
+```bash
+sdkmanager "platforms;android-34"
+```
+
+- `ANDROID_NDK_HOME` — the extracted Termux-adapted NDK root
+  (the directory containing
+  `build/cmake/android.toolchain.cmake`).
+
+```bash
+export ANDROID_HOME=<your-sdk-dir>
+export ANDROID_NDK_HOME=<your-ndk-dir>
 ```
 Only the platform stub is used from the SDK — packaging tools
 (aapt2, d8, zipalign, apksigner) come from the Termux packages above.
@@ -198,18 +212,22 @@ This project uses `termux-ndk`.
 
 The official Android NDK does not integrate cleanly with Termux in many cases. The Termux-adapted NDK avoids several compatibility issues.
 
-Download the Termux-adapted NDK tarball (do NOT clone the repo — it does not contain a usable NDK tree) and extract it somewhere accessible, for example:
+Download the Termux-adapted NDK tarball (do NOT clone the repo — it does not contain a usable NDK tree) and extract it to a directory of your choice:
 
 ```bash
-mkdir -p ~/android-ndk
+mkdir -p <ndk-parent-dir>
 curl -sL https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r29-aarch64.tar.xz \
-  | tar -xJ -C ~/android-ndk
+  | tar -xJ -C <ndk-parent-dir>
 ```
+
+Then set `ANDROID_NDK_HOME` to the extracted NDK root — the
+directory containing `build/cmake/android.toolchain.cmake` (check
+with `ls`, as the tarball creates a versioned subdirectory).
 ## SDL3 Dependency
 
 SDL is intentionally not included in this repository.
 
-Clone SDL3 manually into `vendor/SDL`:
+Clone SDL3 into `vendor/SDL`:
 
 ```bash
 git clone https://github.com/libsdl-org/SDL.git vendor/SDL
@@ -265,12 +283,14 @@ chmod +x clean.sh
 The build script performs the following steps:
 
 1. Configure CMake for Android
-2. Compile native SDL3 shared libraries
-3. Compile Java sources
+2. Compile the app `.so` against static SDL3 (`SDL_STATIC ON` — no shared SDL library is built)
+3. Compile Java sources (SDL `SDLActivity` + app `MainActivity`)
 4. Generate DEX bytecode
 5. Compile Android resources
 6. Link the base APK
-7. Inject native `.so` libraries and `classes.dex`
+7. Inject native `.so` libraries (`libsdl-android-app.so` +
+   `libc++_shared.so` from the NDK, host `linux-aarch64` —
+   Termux-only scope) and `classes.dex`
 8. Align APK
 9. Sign APK
 
