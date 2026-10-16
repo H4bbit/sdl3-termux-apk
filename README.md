@@ -102,8 +102,14 @@ src/main.c
  │           └── res/
  ├── src/
  │   └── main.c
- └── vendor/
-     └── SDL -> ../../SDL
+ ├── vendor/
+ │   └── SDL/   (SDL3 checkout, not included — see below)
+ ├── build-android/   (native CMake build, ignored)
+ ├── build-java/      (javac classes + dex, ignored)
+ ├── build-apk/       (reszip, base, inject, final APK, ignored)
+ └── build/
+     └── build-apk/
+         └── debug.keystore
 
 ```
 
@@ -231,7 +237,7 @@ chmod +x gen-debug-key.sh
 ./gen-debug-key.sh
 
 ```
-This generates: build/build-apk/debug.keystore
+This generates: `build/build-apk/debug.keystore`
 
 ### Build APK
 ```bash
@@ -243,7 +249,11 @@ Final APK output:
 
 ```text
 build-apk/final/app-signed.apk
-``` 
+```
+
+Intermediate outputs: `build-android/` (native `.so`),
+`build-java/` (`classes`, `dex`), `build-apk/` (`reszip`,
+`base`, `inject`, `final`).
 
 ### Clean Build Files
 ```bash 
